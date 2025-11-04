@@ -23,8 +23,8 @@ interface Note {
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([
-    { id: 2, title: "Idea #2", timestamp: new Date(Date.now() - 3600000) },
-    { id: 1, title: "Idea #1", timestamp: new Date(Date.now() - 7200000) },
+    { id: 2, title: "Buy coffee beans", timestamp: new Date(Date.now() - 3600000) },
+    { id: 1, title: "Call mom this weekend", timestamp: new Date(Date.now() - 7200000) },
   ]);
   const [streak, setStreak] = useState(3);
   const [showToast, setShowToast] = useState(false);
