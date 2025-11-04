@@ -31,6 +31,7 @@ const Index = () => {
   const [noteCounter, setNoteCounter] = useState(3);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const addNote = () => {
     if (!newNoteText.trim()) return;
@@ -66,6 +67,10 @@ const Index = () => {
     if (hours < 24) return `${hours}h ago`;
     return `${Math.floor(hours / 24)}d ago`;
   };
+
+  const filteredNotes = notes.filter((note) =>
+    note.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <TooltipProvider>
@@ -109,6 +114,8 @@ const Index = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-input border-0 h-10 rounded-xl text-base focus-visible:ring-[hsl(var(--ios-blue))]"
                 />
               </div>
@@ -116,7 +123,7 @@ const Index = () => {
 
             {/* Notes list */}
             <div className="flex-1 overflow-y-auto px-4 py-2">
-              {notes.map((note, index) => (
+              {filteredNotes.map((note, index) => (
                 <div
                   key={note.id}
                   className="bg-card border border-border rounded-xl p-4 mb-2 hover:bg-secondary/50 transition-colors cursor-pointer animate-fade-in"
