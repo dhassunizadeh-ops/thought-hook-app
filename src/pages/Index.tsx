@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, FileText, Tag, Settings } from "lucide-react";
+import { Plus, Search, FileText, Tag, Settings, RotateCcw, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Tooltip,
   TooltipContent,
@@ -13,6 +15,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 
 interface Note {
@@ -30,8 +33,13 @@ const Index = () => {
   const [showToast, setShowToast] = useState(false);
   const [noteCounter, setNoteCounter] = useState(3);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [snoozeNotifications, setSnoozeNotifications] = useState(false);
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
+  const [showTimeSpent, setShowTimeSpent] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
 
   const addNote = () => {
     if (!newNoteText.trim()) return;
@@ -57,6 +65,39 @@ const Index = () => {
       return () => clearTimeout(timer);
     }
   }, [showToast]);
+
+  // Keyboard shortcut: N to add new note
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'n' || e.key === 'N') {
+        if (!isSheetOpen && !isSettingsOpen && document.activeElement?.tagName !== 'INPUT') {
+          setIsSheetOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isSheetOpen, isSettingsOpen]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (timerSeconds !== null && timerSeconds > 0) {
+      const interval = setInterval(() => {
+        setTimerSeconds(prev => prev !== null && prev > 0 ? prev - 1 : null);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timerSeconds]);
+
+  const resetDemo = () => {
+    setNotes([]);
+    setStreak(0);
+    setNoteCounter(1);
+  };
+
+  const startTimer = () => {
+    setTimerSeconds(120); // 2 minutes = 120 seconds
+  };
 
   const formatTime = (date: Date) => {
     const now = new Date();
@@ -91,8 +132,18 @@ const Index = () => {
             {/* Header */}
             <header className="px-4 pt-2 pb-3 bg-card border-b border-border">
               <div className="flex items-center justify-between mb-1">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground">Notes</h1>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-foreground">Notes</h1>
+                    <button
+                      onClick={resetDemo}
+                      className="text-xs text-muted-foreground hover:text-foreground underline focus-visible:ring-2 focus-visible:ring-[hsl(var(--ios-blue))] focus-visible:outline-none rounded"
+                      aria-label="Reset demo"
+                    >
+                      <RotateCcw className="w-3 h-3 inline mr-1" />
+                      Reset demo
+                    </button>
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Streak: <span className="font-semibold text-[hsl(var(--ios-blue))]">{streak} days</span>
                   </p>
@@ -100,7 +151,8 @@ const Index = () => {
                 <Button
                   onClick={() => setIsSheetOpen(true)}
                   size="sm"
-                  className="bg-[hsl(var(--ios-blue))] hover:bg-[hsl(var(--ios-blue))]/90 text-primary-foreground font-semibold rounded-full h-10 px-4 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                  className="bg-[hsl(var(--ios-blue))] hover:bg-[hsl(var(--ios-blue))]/90 text-primary-foreground font-semibold rounded-full h-10 px-4 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--ios-blue))]"
+                  aria-label="Add a new note"
                 >
                   <Plus className="w-5 h-5 mr-1" />
                   New
@@ -123,23 +175,50 @@ const Index = () => {
 
             {/* Notes list */}
             <div className="flex-1 overflow-y-auto px-4 py-2">
-              {filteredNotes.map((note, index) => (
-                <div
-                  key={note.id}
-                  className="bg-card border border-border rounded-xl p-4 mb-2 hover:bg-secondary/50 transition-colors cursor-pointer animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <h3 className="font-semibold text-foreground mb-1">{note.title}</h3>
-                  <p className="text-xs text-muted-foreground">{formatTime(note.timestamp)}</p>
+              {filteredNotes.length === 0 && searchQuery === "" ? (
+                <div className="bg-card border border-border rounded-xl p-6 text-center animate-fade-in">
+                  <p className="text-muted-foreground">No notes yet. Tap <span className="font-semibold text-[hsl(var(--ios-blue))]">+ New</span> to add your first note.</p>
                 </div>
-              ))}
+              ) : filteredNotes.length === 0 ? (
+                <div className="bg-card border border-border rounded-xl p-6 text-center animate-fade-in">
+                  <p className="text-muted-foreground">No notes match your search.</p>
+                </div>
+              ) : (
+                filteredNotes.map((note, index) => (
+                  <div
+                    key={note.id}
+                    className="bg-card border border-border rounded-xl p-4 mb-2 hover:bg-secondary/50 transition-colors cursor-pointer animate-fade-in focus-visible:ring-2 focus-visible:ring-[hsl(var(--ios-blue))] focus-visible:outline-none"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                    tabIndex={0}
+                  >
+                    <h3 className="font-semibold text-foreground mb-1">{note.title}</h3>
+                    <p className="text-xs text-muted-foreground">{formatTime(note.timestamp)}</p>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Hook Loop Strip */}
             <div className="px-4 py-3 bg-secondary/30 border-t border-border">
-              <p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                Hook Loop
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Hook Loop
+                </p>
+                {timerSeconds !== null && timerSeconds > 0 && (
+                  <div className="flex items-center gap-1 text-[10px] font-semibold text-[hsl(var(--ios-blue))]">
+                    <Timer className="w-3 h-3" />
+                    {Math.floor(timerSeconds / 60)}:{(timerSeconds % 60).toString().padStart(2, '0')}
+                  </div>
+                )}
+                {(timerSeconds === null || timerSeconds === 0) && (
+                  <button
+                    onClick={startTimer}
+                    className="text-[10px] font-semibold text-[hsl(var(--ios-blue))] hover:underline focus-visible:ring-1 focus-visible:ring-[hsl(var(--ios-blue))] focus-visible:outline-none rounded px-1"
+                  >
+                    Start 2-minute timer
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { label: "Trigger", desc: "Streak visible" },
@@ -158,15 +237,18 @@ const Index = () => {
             {/* Bottom Navigation */}
             <nav className="bg-card border-t border-border px-8 py-2 pb-6">
               <div className="flex justify-around items-center">
-                <button className="flex flex-col items-center gap-1 text-[hsl(var(--ios-blue))]">
+                <button className="flex flex-col items-center gap-1 text-[hsl(var(--ios-blue))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ios-blue))] focus-visible:outline-none rounded">
                   <FileText className="w-6 h-6" />
                   <span className="text-[10px] font-semibold">Notes</span>
                 </button>
-                <button className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+                <button className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--ios-blue))] focus-visible:outline-none rounded">
                   <Tag className="w-6 h-6" />
                   <span className="text-[10px]">Tags</span>
                 </button>
-                <button className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+                <button 
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-[hsl(var(--ios-blue))] focus-visible:outline-none rounded"
+                >
                   <Settings className="w-6 h-6" />
                   <span className="text-[10px]">Settings</span>
                 </button>
@@ -241,6 +323,44 @@ const Index = () => {
               >
                 Save Note
               </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Settings Sheet */}
+        <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <SheetContent side="bottom" className="rounded-t-[2rem] border-t-8 border-[#1f1f1f]">
+            <SheetHeader>
+              <SheetTitle className="text-2xl font-bold">Settings</SheetTitle>
+              <SheetDescription className="text-sm text-muted-foreground">
+                You control prompts and rewards.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="snooze" className="text-base">Snooze notifications</Label>
+                <Switch
+                  id="snooze"
+                  checked={snoozeNotifications}
+                  onCheckedChange={setSnoozeNotifications}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="digest" className="text-base">Weekly digest only</Label>
+                <Switch
+                  id="digest"
+                  checked={weeklyDigest}
+                  onCheckedChange={setWeeklyDigest}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="time" className="text-base">Show time spent</Label>
+                <Switch
+                  id="time"
+                  checked={showTimeSpent}
+                  onCheckedChange={setShowTimeSpent}
+                />
+              </div>
             </div>
           </SheetContent>
         </Sheet>
