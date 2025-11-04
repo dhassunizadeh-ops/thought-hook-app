@@ -8,6 +8,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface Note {
   id: number;
@@ -23,17 +29,23 @@ const Index = () => {
   const [streak, setStreak] = useState(3);
   const [showToast, setShowToast] = useState(false);
   const [noteCounter, setNoteCounter] = useState(3);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
 
   const addNote = () => {
+    if (!newNoteText.trim()) return;
+    
     const newNote: Note = {
       id: noteCounter,
-      title: `Idea #${noteCounter}`,
+      title: newNoteText.trim(),
       timestamp: new Date(),
     };
     setNotes([newNote, ...notes]);
     setNoteCounter(noteCounter + 1);
     setStreak(streak + 1);
     setShowToast(true);
+    setIsSheetOpen(false);
+    setNewNoteText("");
   };
 
   useEffect(() => {
@@ -81,7 +93,7 @@ const Index = () => {
                   </p>
                 </div>
                 <Button
-                  onClick={addNote}
+                  onClick={() => setIsSheetOpen(true)}
                   size="sm"
                   className="bg-[hsl(var(--ios-blue))] hover:bg-[hsl(var(--ios-blue))]/90 text-primary-foreground font-semibold rounded-full h-10 px-4 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                 >
@@ -199,6 +211,32 @@ const Index = () => {
             </div>
           )}
         </div>
+
+        {/* New Note Sheet */}
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent side="bottom" className="rounded-t-[2rem] border-t-8 border-[#1f1f1f]">
+            <SheetHeader>
+              <SheetTitle className="text-2xl font-bold">New Note</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6 space-y-4">
+              <Input
+                placeholder="Type your note here..."
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addNote()}
+                autoFocus
+                className="text-base h-12"
+              />
+              <Button
+                onClick={addNote}
+                className="w-full bg-[hsl(var(--ios-blue))] hover:bg-[hsl(var(--ios-blue))]/90 h-12 text-base font-semibold"
+                disabled={!newNoteText.trim()}
+              >
+                Save Note
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </TooltipProvider>
   );
